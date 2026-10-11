@@ -1,0 +1,81 @@
+import {useRef,useState} from 'react';
+import {ArrowDown,ArrowRight,ArrowUpRight,Check,ChevronDown,Download,Heart,Leaf,LoaderCircle,LockKeyhole,MessageCircle,RotateCcw,Sparkles,Stars,Sun,Users,X} from 'lucide-react';
+import {apiPayload,branchName,buildMatch,chartFor,timezones,type PersonChart} from './lib/match';
+import type {BirthInput,Narrative} from './lib/types';
+import service from './service.json';
+
+const blank=(sex:'female'|'male'):BirthInput=>({name:'',date:'',time:'',sex,calendar:'solar',leap:false,place:'',timezone:'Asia/Shanghai'});
+const examples:BirthInput[]=[{...blank('female'),name:'小禾',date:'1994-02-25',time:'02:30',place:'北京'},{...blank('male'),name:'阿远',date:'1990-02-13',time:'15:37',place:'上海'}];
+const icons=[Sun,MessageCircle,Heart,Leaf,Users,Stars];
+function Mark(){return <span className="mark" aria-hidden="true"><i/><i/></span>}
+function PersonForm({index,value,disabled,onChange}:{index:number;value:BirthInput;disabled:boolean;onChange:(v:BirthInput)=>void}){
+ const id=`person-${index}`;
+ const set=(k:keyof BirthInput,v:string|boolean)=>onChange({...value,[k]:v,...(k==='calendar'&&v==='solar'?{leap:false}:{})});
+ return <fieldset disabled={disabled} className={`person person-${index}`}><legend className="sr-only">{index===0?'甲方':'乙方'}出生资料</legend>
+  <div className="person-head"><span className="person-number">0{index+1}</span><div><h3>{index===0?'你 的 生 辰':'TA 的 生 辰'}</h3><p>{index===0?'从了解自己开始':'也为彼此留一份好奇'}</p></div><span className="person-symbol">{index===0?'☼':'☾'}</span></div>
+  <div className="form-grid"><label htmlFor={`${id}-name`}>称呼 <span>仅用于报告</span><input id={`${id}-name`} value={value.name} onChange={e=>set('name',e.target.value)} placeholder={index===0?'怎么称呼你':'怎么称呼 TA'} maxLength={30} required autoComplete="off"/></label>
+  <label htmlFor={`${id}-sex`}>排盘性别 <span>传统算法参数</span><select id={`${id}-sex`} value={value.sex} onChange={e=>set('sex',e.target.value)}><option value="female">女</option><option value="male">男</option></select></label>
+  <div className="full calendar-row"><span>出生历法</span><div className="segmented" aria-label="出生历法"><button type="button" aria-pressed={value.calendar==='solar'} className={value.calendar==='solar'?'active':''} onClick={()=>set('calendar','solar')}>公历</button><button type="button" aria-pressed={value.calendar==='lunar'} className={value.calendar==='lunar'?'active':''} onClick={()=>set('calendar','lunar')}>农历</button></div>{value.calendar==='lunar'&&<label className="inline-check"><input type="checkbox" checked={value.leap} onChange={e=>set('leap',e.target.checked)}/>闰月</label>}</div>
+  <label htmlFor={`${id}-date`}>出生日期<input id={`${id}-date`} value={value.date} onChange={e=>set('date',e.target.value)} placeholder="例如 1994-02-25" required maxLength={10} pattern="[0-9]{4}-[0-9]{2}-[0-9]{2}" aria-describedby={`${id}-datehint`}/><small id={`${id}-datehint`}>年-月-日 · 1901 年起</small></label>
+  <label htmlFor={`${id}-time`}>出生时间<input id={`${id}-time`} type="time" value={value.time} onChange={e=>set('time',e.target.value)} required/><small>出生证明上的当地时间</small></label>
+  <label htmlFor={`${id}-place`}>出生地点 <span>选填</span><input id={`${id}-place`} value={value.place} onChange={e=>set('place',e.target.value)} placeholder="城市，例如杭州" maxLength={80}/></label>
+  <label htmlFor={`${id}-zone`}>出生地时区<select id={`${id}-zone`} value={value.timezone} onChange={e=>set('timezone',e.target.value)}>{timezones.map(([v,n])=><option key={v} value={v}>{n}</option>)}</select></label></div>
+ </fieldset>;
+}
+function Chart({person,label}:{person:PersonChart;label:string}){
+ const [expanded,setExpanded]=useState(false),c=person,n=c.normalized;
+ return <article className="chart-card"><div className="chart-heading"><h3>{label} · {c.input.name}</h3><span>{c.chart.wuxingJuName}</span></div><p className="muted">{c.input.calendar==='lunar'?'农历':'公历'} {c.input.date} {c.input.time} · {c.input.place||'未填写地点'}</p>
+  <div className="pillars">{c.pillars.map((p,i)=><div key={i}><small>{['年柱','月柱','日柱','时柱'][i]}</small><strong>{p[0]}<br/>{p[1]}</strong><span>{c.hidden[i].join(' ')}</span></div>)}</div>
+  <div className="palace-summary"><p><span>命宫主星</span>{c.ming.used.join(' · ')||'无'}{c.ming.borrowed?'（空宫借对宫）':''}</p><p><span>夫妻宫主星</span>{c.spouse.used.join(' · ')||'无'}{c.spouse.borrowed?'（空宫借对宫）':''}</p></div>
+  <button className="text-button" type="button" onClick={()=>setExpanded(!expanded)} aria-expanded={expanded}>{expanded?'收起':'展开'}紫微十二宫 <ChevronDown size={15}/></button>
+  {expanded&&<div className="palaces">{c.chart.palaces.map(p=><div key={p.branch} className={p.name==='夫妻'?'spouse-palace':''}><b>{p.name} · {branchName(p.branch)}</b><p>{p.stars.filter(s=>s.type==='major').map(s=>s.name+(s.siHua?`化${s.siHua}`:'')).join('、')||'无主星'}</p><small>{p.stars.filter(s=>s.type!=='major').map(s=>s.name+(s.siHua?`化${s.siHua}`:'')).join('、')||'—'}</small></div>)}</div>}
+  <p className="chart-note">排盘标准时间 {n.normalized}<br/>{c.input.timezone} · {n.dstMinutes?`已回拨夏令时 ${n.dstMinutes} 分钟`:'无夏令时回拨'}<br/>晚子时按当日；未校正真太阳时；紫微闰月 fixLeap=true。</p>
+ </article>;
+}
+type Result={a:PersonChart;b:PersonChart;report:Narrative;mode:'basic'|'ai'|'demo'};
+export default function App(){
+ const [people,setPeople]=useState([blank('female'),blank('male')]),[useAI,setUseAI]=useState(true),[consent,setConsent]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[result,setResult]=useState<Result|null>(null),[tab,setTab]=useState<'report'|'charts'>('report');
+ const controller=useRef<AbortController|null>(null),run=useRef(0);
+ const scroll=(id:string)=>document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+ function update(i:number,v:BirthInput){setPeople(p=>p.map((x,j)=>i===j?v:x));setResult(null);setError('');setNotice('');}
+ function reset(){run.current++;controller.current?.abort();setBusy(false);setPeople([blank('female'),blank('male')]);setResult(null);setError('');setNotice('');setConsent(false);scroll('start');}
+ function example(){const a=chartFor(examples[0]),b=chartFor(examples[1]);setPeople(examples.map(x=>({...x})));setResult({a,b,report:buildMatch(a,b),mode:'demo'});setTab('report');setNotice('这是虚构称呼的示例报告，未调用 AI。填写你们的资料后即可重新生成。');setError('');setTimeout(()=>scroll('result'),50);}
+ async function generate(e:React.FormEvent){
+  e.preventDefault();setError('');setNotice('');setResult(null);let a:PersonChart,b:PersonChart;
+  try{try{a=chartFor(people[0]);}catch(e){throw Error(`你的资料：${(e as Error).message}`);}try{b=chartFor(people[1]);}catch(e){throw Error(`TA 的资料：${(e as Error).message}`);}}catch(e){setError((e as Error).message);return;}
+  const base={a,b,report:buildMatch(a,b),mode:'basic' as const};setResult(base);setTab('report');
+  if(!useAI){setTimeout(()=>scroll('result'),50);return;}
+  const endpoint=import.meta.env.VITE_MATCH_API_URL||service.apiUrl;
+  if(!endpoint){setNotice('AI 服务尚未配置，目前展示完整的本地基础报告。');setTimeout(()=>scroll('result'),50);return;}
+  setBusy(true);const id=++run.current;const abort=new AbortController();controller.current=abort;const timeout=setTimeout(()=>abort.abort(),55000);
+  try{
+   const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(apiPayload(a,b)),signal:abort.signal});const data=await response.json();
+   if(!response.ok)throw Error(data.error||'AI 服务暂时不可用。');
+   const {outputSchema}=await import('../backend/service.mjs');const parsed=outputSchema.safeParse(data.report);if(!parsed.success||data.provider!=='DeepSeek')throw Error('AI 报告格式异常。');
+   if(run.current===id)setResult({...base,report:parsed.data,mode:'ai'});
+  }catch(e){if(run.current===id)setNotice(`${e instanceof Error&&e.name==='AbortError'?'AI 解读超时或已取消。':(e as Error).message} 已保留本地基础报告，可以稍后重新生成。`);}
+  finally{clearTimeout(timeout);if(run.current===id){setBusy(false);setTimeout(()=>scroll('result'),50);}}
+ }
+ function cancel(){run.current++;controller.current?.abort();setBusy(false);setNotice('已取消 AI 等待，当前展示本地基础报告。');scroll('result');}
+ function download(){if(!result)return;const {a,b,report,mode}=result;const lines=['# 合笺 · 双人关系报告',`${a.input.name} × ${b.input.name}`,`来源：${mode==='ai'?'DeepSeek AI 解读':mode==='demo'?'示例 · 本地规则':'本地基础报告'}`,'',report.headline,report.summary,...report.sections.flatMap(s=>['',`## ${s.title}`,s.body,`依据：${s.basis}`,`一起试试：${s.action}`]),'','## 留给彼此的问题',...report.questions,...[a,b].flatMap((c,i)=>['',`## ${i?'乙方':'甲方'} · ${c.input.name}`,`四柱：${c.pillars.join(' ')}`,`命宫：${c.ming.used.join('、')}${c.ming.borrowed?'（空宫借对宫）':''}`,`夫妻宫：${c.spouse.used.join('、')}${c.spouse.borrowed?'（空宫借对宫）':''}`,`标准时间：${c.normalized.normalized}，时区 ${c.input.timezone}，夏令时回拨 ${c.normalized.dstMinutes} 分钟。`]),'','口径：晚子时按当日，标准时，未校正真太阳时，闰月 fixLeap=true。','传统文化讨论参考，不是科学测评或婚姻预测。请根据真实相处与自主意愿作决定。'];const url=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/markdown;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='合笺-双人关系报告.md';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+ return <><header className="header"><a className="brand" href="#" aria-label="合笺首页"><Mark/><span>合笺<small>MATEMATCH</small></span></a><nav aria-label="主导航"><a href="#how">如何解读</a><a href="#method">关于合笺</a><a className="nav-cta" href="#start">开始合盘 <ArrowUpRight size={15}/></a></nav></header>
+ <main><section className="hero"><div className="hero-copy"><span className="eyebrow"><i/> 一份写给两个人的关系手札</span><h1>缘分，是相遇。<br/>相处，是<span className="accent">读懂彼此。</span></h1><p className="hero-desc">以八字与紫微双盘为线索，<br className="desktop-break"/>看见你们的相似、不同，以及靠近彼此的方式。</p><div className="hero-actions"><a className="primary" href="#start">开启我们的合盘 <ArrowRight size={18}/></a><button className="text-button" onClick={example} disabled={busy}>看看示例报告 <ArrowUpRight size={16}/></button></div><div className="hero-foot"><span><LockKeyhole size={13}/> 生辰在浏览器内排盘</span><span>不为感情打分，只为相处添一份理解</span></div></div>
+ <div className="hero-art" aria-hidden="true"><div className="art-orbit orbit-1"/><div className="art-orbit orbit-2"/><div className="art-orbit orbit-3"/><span className="art-label top">TWO LIVES, ONE STORY</span><span className="art-star star-a">✧</span><span className="art-star star-b">✦</span><div className="art-oval oval-a"><span>你</span><small>独一无二</small></div><div className="art-oval oval-b"><span>TA</span><small>恰好相遇</small></div><div className="art-center">合</div><span className="art-label bottom">各自完整 · 彼此相知</span><span className="art-dot dot-a"/><span className="art-dot dot-b"/></div></section>
+ <section className="intro-strip" id="how"><div><span className="step-no">01</span><p><b>写下两份生辰</b><span>用准确的出生信息，开启探索</span></p></div><div><span className="step-no">02</span><p><b>看见双盘的对话</b><span>结合八字与紫微，梳理关系线索</span></p></div><div><span className="step-no">03</span><p><b>把理解带回生活</b><span>从具体的沟通建议，开始靠近</span></p></div></section>
+ <section className="input-section" id="start"><div className="section-heading"><span className="eyebrow">BEGIN YOUR STORY</span><h2>两份生辰，一次认真了解。</h2><p>请填写准确的出生时间。每一个细节，都是这份手札的起点。</p></div>
+ <form onSubmit={generate}><div className={`couple-form ${busy?'is-busy':''}`}><PersonForm disabled={busy} index={0} value={people[0]} onChange={v=>update(0,v)}/><span className="join-icon" aria-hidden="true"><Heart size={20}/></span><PersonForm disabled={busy} index={1} value={people[1]} onChange={v=>update(1,v)}/></div>
+ {busy&&<div className="busy-shield" aria-hidden="true"/>}
+ <div className="form-note"><Leaf size={16}/><p>采用出生地标准时，自动处理夏令时；地点不会自动改变时区。未知时辰请先核对，不以默认时间代替。</p></div>
+ <div className="ai-option"><label><input type="checkbox" checked={useAI} disabled={busy} onChange={e=>setUseAI(e.target.checked)}/><span><b>加入 DeepSeek 深度解读</b><small>让双盘线索成为更具体、易读的关系建议；关闭后仍可生成本地基础报告。</small></span><Sparkles size={19}/></label>{useAI&&<label className="consent"><input type="checkbox" required checked={consent} disabled={busy} onChange={e=>setConsent(e.target.checked)}/><span>我已获对方同意，并同意将两人的四柱、星曜及关系摘要发送给 DeepSeek，不发送称呼、原始生日和出生地。</span></label>}</div>
+ {error&&<p className="error" role="alert">{error}</p>}
+ <div className="submit-area"><button className="primary large" type="submit" disabled={busy}>{busy?<><LoaderCircle size={19} className="spin"/> 正在为你们整理关系手札…</>:<><Sparkles size={18}/> 生成我们的婚配报告 <ArrowRight size={18}/></>}</button>{busy?<button type="button" className="text-button" onClick={cancel}>先看基础报告 <X size={14}/></button>:<p><LockKeyhole size={12}/> 不建立生辰档案 · 可随时清除资料</p>}</div></form></section>
+ {result&&<section className="results" id="result" aria-busy={busy}><div className="report-topline"><span className="eyebrow">YOUR RELATIONSHIP JOURNAL</span><div className="report-tools"><button type="button" onClick={download} disabled={busy}><Download size={15}/>保存报告</button><button type="button" onClick={()=>window.print()} disabled={busy}>打印 / PDF</button></div></div>
+ <div className="report-cover"><span className="source-badge"><Check size={13}/>{busy?'本地排盘完成 · AI 整理中':result.mode==='ai'?'DeepSeek 双人深度解读':result.mode==='demo'?'示例 · 本地基础报告':'本地基础报告'}</span><div className="couple-names"><span>{result.a.input.name}</span><Heart size={22}/><span>{result.b.input.name}</span></div><h2>{result.report.headline}</h2><p>{result.report.summary}</p><span className="report-legend">甲方 = {result.a.input.name} &nbsp;·&nbsp; 乙方 = {result.b.input.name}</span></div>
+ {notice&&<p className="notice" role="status">{notice}</p>}
+ <div className="report-tabs" role="tablist" aria-label="报告内容"><button role="tab" aria-selected={tab==='report'} aria-controls="narrative-panel" id="narrative-tab" className={tab==='report'?'selected':''} onClick={()=>setTab('report')}>我们的关系手札</button><button role="tab" aria-selected={tab==='charts'} aria-controls="charts-panel" id="charts-tab" className={tab==='charts'?'selected':''} onClick={()=>setTab('charts')}>查看双人排盘</button></div>
+ <div id="narrative-panel" role="tabpanel" aria-labelledby="narrative-tab" hidden={tab!=='report'}><div className="report-grid">{result.report.sections.map((s,i)=>{const Icon=icons[i];return <article className="report-section" key={s.title}><span className="report-index">0{i+1}</span><Icon size={21}/><h3>{s.title}</h3><p>{s.body}</p><div className="action"><span>一起试试</span><p>{s.action}</p></div><details><summary>这段解读的依据 <ChevronDown size={13}/></summary><p>{s.basis}</p></details></article>})}</div><div className="questions"><span className="eyebrow">A CONVERSATION FOR TWO</span><h3>今晚，不妨问问彼此。</h3>{result.report.questions.map((q,i)=><p key={i}><span>0{i+1}</span>{q}</p>)}</div></div>
+ <div id="charts-panel" role="tabpanel" aria-labelledby="charts-tab" hidden={tab!=='charts'}><div className="charts-grid"><Chart person={result.a} label="甲方"/><Chart person={result.b} label="乙方"/></div></div>
+ <p className="report-disclaimer">这是一份传统文化视角的讨论手札，不是科学测评或婚姻预测。相合不保证幸福，相冲不决定结局；真实的关系，仍由你们共同书写。</p><div className="report-bottom"><button className="text-button" onClick={()=>scroll('start')}><ArrowDown size={15} className="rotate"/>调整资料，重新了解</button><button className="text-button" onClick={reset}><RotateCcw size={14}/>清除所有资料</button></div></section>}
+ <section className="method" id="method"><div><span className="eyebrow">A LITTLE MORE UNDERSTANDING</span><h2>命盘是话题的开始，<br/>生活才是答案。</h2><p>合笺借传统文化中的关系语言，为两个人创造一次认真交谈的机会。我们相信，比“合不合”更值得了解的，是怎样好好相处。</p></div><div className="method-details"><details><summary>八字与紫微如何共同解读？<span>+</span></summary><p>八字采用 lunar-javascript 1.7.3，紫微采用与 soulmate 相同的 iztro 2.5.8 核心。基础报告比较双方日干五行、日支六合六冲，以及命宫与夫妻宫的主星主题。AI 根据同一组双人摘要整理文字，不负责计算命盘。没有计算旺衰、喜用神、大运或流年，也不提供匹配分数。</p></details><details><summary>出生时间和历法有哪些约定？<span>+</span></summary><p>支持公历、农历与闰月，时间必须准确到分钟。采用所选时区的标准时间，按时区历史记录回拨夏令时；遇到重复或不存在的钟点会提示核对。23 点晚子时按当日，紫微闰月 fixLeap=true，不做经度或均时差校正。不同流派可能采用不同口径。</p></details><details><summary>两个人的信息会保存吗？<span>+</span></summary><p>姓名、生辰、地点只在当前页面内存中使用；不写入浏览器存储或出生资料数据库。AI 解读需同意后发送四柱、主星和双盘摘要至 Vercel 后端与 DeepSeek，应用不主动记录请求正文，服务平台可能保留访问元数据。刷新或清除可移除页面中的资料；自行保存的报告需自行保管。</p></details><details><summary>如果时辰不确定，或者 AI 暂时不可用？<span>+</span></summary><p>时辰不确定时请先核对出生记录，不填默认时辰。AI 不可用时保留明确标记的本地基础报告，也可随时关闭 AI。基础报告和 AI 解读都不是科学验证的人格分析，不应代替你们对关系的真实观察。</p></details></div></section>
+ </main><footer><a className="brand" href="#"><Mark/><span>合笺<small>MATEMATCH</small></span></a><p>各自完整，彼此相知。</p><span>传统文化参考 · 尊重每一种关系</span></footer></>;
+}
