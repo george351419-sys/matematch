@@ -27,8 +27,8 @@ export function chartFor(value:BirthInput,asOf=referenceDate()){
  const yun=eight.getYun(input.sex==='male'?1:0,1),start=yun.getStartSolar();
  const cycles=yun.getDaYun(14).filter(d=>d.getIndex()>0).map(d=>({pillar:d.getGanZhi(),start:start.nextYear((d.getIndex()-1)*10).toYmd(),end:start.nextYear(d.getIndex()*10).toYmd()}));
  const timing:Timing={asOf,current:cycles.find(c=>c.start<=asOf&&c.end>asOf)||null,next:cycles.find(c=>c.start>asOf)||null,method:'lunar-javascript 起运 sect=1，按起运日期每十年递推；边界当日按进入新运显示，日期为近似参考'};
- const ming=mainStars('命宫'),spouse=mainStars('夫妻');
- return {input,normalized,pillars,timing,hidden:[eight.getYearHideGan(),eight.getMonthHideGan(),eight.getDayHideGan(),eight.getTimeHideGan()],dayElement:wx[pillars[2][0]],chart,ming,spouse};
+ const ming=mainStars('命宫'),spouse=mainStars('夫妻'),wealth=mainStars('财帛'),career=mainStars('官禄'),wellbeing=mainStars('福德'),travel=mainStars('迁移');
+ return {input,normalized,pillars,timing,hidden:[eight.getYearHideGan(),eight.getMonthHideGan(),eight.getDayHideGan(),eight.getTimeHideGan()],dayElement:wx[pillars[2][0]],chart,ming,spouse,wealth,career,wellbeing,travel};
 }
 export type PersonChart=ReturnType<typeof chartFor>;
 function themeText(c:PersonChart,kind:'ming'|'spouse',field:'temperament'|'care'|'friction'|'observe'){
@@ -48,10 +48,10 @@ export function pairFacts(a:PersonChart,b:PersonChart){
  return {dayStems:[da,db],dayBranches:[ba,bb],elements:[ea,eb],element,branch,stem};
 }
 export function scoreMatch(a:PersonChart,b:PersonChart){return evaluatePair(apiPerson(a),apiPerson(b),a.timing.asOf);}
-function apiPerson(c:PersonChart){return {pillars:c.pillars,sex:c.input.sex,ming:c.ming,spouse:c.spouse,timing:c.timing};}
+function apiPerson(c:PersonChart){return {pillars:c.pillars,sex:c.input.sex,ming:c.ming,spouse:c.spouse,wealth:c.wealth,career:c.career,wellbeing:c.wellbeing,travel:c.travel,timing:c.timing};}
 export function buildMatch(a:PersonChart,b:PersonChart):Narrative{
  const score=scoreMatch(a,b),f=score.facts,pa=f.a,pb=f.b;
- const roles=f.hetero?`甲方为${pa.day}${pa.dayElement}日主，乙方日干${pb.day}对应甲方的${f.aSeesB}；乙方为${pb.day}${pb.dayElement}日主，甲方日干${pa.day}对应乙方的${f.bSeesA}。`:'这组组合不套用传统异性配偶星角色，因此相关两项不计分，也不作为缺点。';
+ const roles=f.hetero?`甲方为${pa.day}${pa.dayElement}日主，乙方日干${pb.day}对应甲方的${f.aSeesB}；乙方为${pb.day}${pb.dayElement}日主，甲方日干${pa.day}对应乙方的${f.bSeesA}。`:'这组组合不套用传统异性配偶星角色，因此相关两项的八字部分不计分，仍可参考紫微部分，也不作为缺点。';
  const attraction=f.roleCount===2?'双方日主恰好对应彼此传统意义上的正配偶星，可以作为把对方纳入伴侣角色的象征线索，适合认真了解。':'配偶角色的对应并不是判断关系好坏的门槛，仍要观察彼此是否愿意认真考虑未来。';
  const timingText=(c:PersonChart,label:string)=>c.timing.current&&c.timing.next?`${label}当前为${c.timing.current.pillar}大运，约${c.timing.next.start}转入${c.timing.next.pillar}大运。`:`${label}暂无可用的当前与下一步大运，不补造时间。`;
  const sections:Section[]=[
@@ -62,9 +62,11 @@ export function buildMatch(a:PersonChart,b:PersonChart):Narrative{
   {title:'长期婚姻适配',verdict:score.dimensions[4].verdict,body:`${f.hetero?`甲方原局：${pa.locations.join('；')||'未见本规则所取的正配偶星'}。乙方原局：${pb.locations.join('；')||'未见本规则所取的正配偶星'}。`:'这里以共同生活的责任兑现为核对重点，不套用传统异性婚配角色。'}双方日支${f.branch}；没有冲也不能单独证明婚姻幸福。\n\n${f.nativeNotes.join('。')}。这些首先属于各自原局，不能说成对方带来的问题，也不能据此推断出轨或离婚。面对工作变化、异地、搬家或照顾父母时，能否共同重新分配责任，才是需要验证的长期能力。`,basis:'本项只看各自原局正配偶星位置与双方日支直接六冲，不重复计算第一项的互为配偶星；原局冲害另列为事实，不直接转换为婚姻结果。',action:'讨论一次生活发生变化时的分工：谁能多承担什么，什么时候重新协商，而不是要求对方始终照旧配合。'},
   {title:'关系发展节奏',verdict:score.dimensions[5].verdict,body:`以${score.asOf}为参考日。${timingText(a,'甲方')}${timingText(b,'乙方')}\n\n起运按本站 sect=1 计算，与截图或其他流派可能有数日差异。大运只作为传统讨论背景，不能保证结婚，也不表示一定出现新对象。本站未做完整流年合婚，不能选出“最佳结婚年份”。更有用的是核对未来一两年的同居、结婚、换城市、换工作、住房和家庭责任安排。`,basis:`${a.timing.method}。不用年度区间替代具体交运日期；不沿用示例中的年份。`,action:'各自写下未来两年的三个重要安排，找出需要共同决定的一项，不因某个年份仓促推进关系。'}
  ];
+ sections.push({title:'彼此助力',verdict:score.dimensions[6].verdict,body:score.facts.assistance.map((d:any)=>`${d.direction}：${d.basis}。`).join('\n\n')+'\n\n可以核对的助力包括：一起整理信息、承担具体事务、引荐适合的资源、提供情绪支持。双方的事业与财务仍取决于能力、机会与选择，不能据此认定谁旺谁、替谁改运，也不把另一方的价值等同于收入。',basis:score.dimensions[6].ziweiBasis,action:'双方各写一项希望得到的支持、一项愿意提供的支持，约定投入时间与边界，一个月后核对是否真正有效。'});
+ sections.forEach((section,i)=>{const d=score.dimensions[i];section.basis+=' 紫微盘面：'+d.ziweiBasis+'。';section.body+='\n\n紫微线索：'+d.ziweiBasis+'。'+[ '以命宫与对方夫妻宫比较本人的象征风格与关系期待，契合仍需现实核对。','命宫主星类别用于讨论行动与决策方式，不能据此测量人格。','命宫与对方福德宫用于讨论表达和安定需求；先核对倾听、独处和回应的需要。','财帛宫用于讨论资源安排的象征偏好，不预测收入，需结合真实预算。','夫妻宫之间比较关系期待，长期承诺要由实际行动验证。','迁移与对方福德宫用于讨论改变与安定需求；这里没有紫微大运流年，不推断换运日期。','官禄与对方财帛宫用于讨论行动和资源协作；不是事业成功率或财富增幅。'][i];});
  const advantage=f.roleCount===2?'双方日主对应彼此的传统正配偶星，伴侣角色呼应较明确。':'盘面提供了可以认真讨论的关系线索，是否愿意投入仍由双方的真实行动确认。';
  const challenge=f.controlled?'表达关心、分配责任和共同决策时，把“替你安排”变成“与你商量”。':'把彼此的期待说具体，让日常责任与决定权保持可协商。';
- return {headline:f.roleCount===2?'伴侣角色有对应，适合认真了解':'以真实相处，核对命盘中的关系线索',summary:`${advantage}主要需要磨合的是${challenge}明确的干支关系与生活场景推演分开列出，避免把假设当成事实。`,advantage,challenge,sections,perspectives:[{direction:'甲方看乙方',smooth:'可能愿意投入、提供帮助，把关系纳入未来计划；请用实际经历核对。',friction:'可能觉得已经付出很多，却没有回应到对方真正的需要；不是对内心的判定。'},{direction:'乙方看甲方',smooth:'可能感到有人共同承担、愿意认真协商，有一起生活的空间。',friction:'如果建议替代了倾听，可能觉得感受与选择被安排覆盖；这条同样可能发生在反方向。'}],advice:[{title:'给建议前，多问一句',body:'“你希望我先听你说，还是一起想办法？”让好意更容易被对方接收到，双方都适用。'},{title:'把需要说成可以执行的请求',body:'例如：“我想让你陪我聊十分钟，先不要提建议。”比“你根本不懂我”更容易让对方知道如何回应。'},{title:'每月安排一次共同生活讨论',body:'集中谈钱、时间、家务与未来安排，各说一件感谢的事、一件需要调整的事，再共同决定一个小行动。'}],conclusion:`${advantage}这份参考分表达的是传统结构的解释，不是关系质量的判决。最值得保留的是愿意为彼此投入，最值得练习的是协商，而不是把自己的付出方式当成对方唯一需要的方式。`,ziwei:`紫微独立补充，不计入八字分数。甲方${starBasis(a,'ming')}；乙方${starBasis(b,'ming')}。甲方的传统关系期待：${themeText(a,'spouse','care')}乙方的传统关系期待：${themeText(b,'spouse','care')}夫妻宫不是对另一人的真实性格判定，两套体系也不能互相证明预测准确。`,questions:['最近一次争执后，我们是理解了彼此，还是只是停止说话？','哪些帮助让我感到被支持，哪些安排让我失去选择权？','未来两年，哪些关于钱、居住地和家庭责任的决定需要一起商量？']};
+ return {headline:f.roleCount===2?'伴侣角色有对应，适合认真了解':'以真实相处，核对命盘中的关系线索',summary:`${advantage}主要需要磨合的是${challenge}明确的干支关系与生活场景推演分开列出，避免把假设当成事实。`,advantage,challenge,sections,perspectives:[{direction:'甲方看乙方',smooth:'可能愿意投入、提供帮助，把关系纳入未来计划；请用实际经历核对。',friction:'可能觉得已经付出很多，却没有回应到对方真正的需要；不是对内心的判定。'},{direction:'乙方看甲方',smooth:'可能感到有人共同承担、愿意认真协商，有一起生活的空间。',friction:'如果建议替代了倾听，可能觉得感受与选择被安排覆盖；这条同样可能发生在反方向。'}],advice:[{title:'给建议前，多问一句',body:'“你希望我先听你说，还是一起想办法？”让好意更容易被对方接收到，双方都适用。'},{title:'把需要说成可以执行的请求',body:'例如：“我想让你陪我聊十分钟，先不要提建议。”比“你根本不懂我”更容易让对方知道如何回应。'},{title:'每月安排一次共同生活讨论',body:'集中谈钱、时间、家务与未来安排，各说一件感谢的事、一件需要调整的事，再共同决定一个小行动。'}],conclusion:`${advantage}这份参考分表达的是传统结构的解释，不是关系质量的判决。最值得保留的是愿意为彼此投入，最值得练习的是协商，而不是把自己的付出方式当成对方唯一需要的方式。`,ziwei:`紫微已融入七个维度；与八字按60%和40%合成，缺项按可用体系计算。甲方${starBasis(a,'ming')}；乙方${starBasis(b,'ming')}。甲方的传统关系期待：${themeText(a,'spouse','care')}乙方的传统关系期待：${themeText(b,'spouse','care')}夫妻宫不是对另一人的真实性格判定，两套体系也不能互相证明预测准确。`,questions:['最近一次争执后，我们是理解了彼此，还是只是停止说话？','哪些帮助让我感到被支持，哪些安排让我失去选择权？','未来两年，哪些关于钱、居住地和家庭责任的决定需要一起商量？']};
 }
-export function apiPayload(a:PersonChart,b:PersonChart){return {version:2,asOf:a.timing.asOf,a:apiPerson(a),b:apiPerson(b)};}
+export function apiPayload(a:PersonChart,b:PersonChart){return {version:3,asOf:a.timing.asOf,a:apiPerson(a),b:apiPerson(b)};}
 export const branchName=(index:number)=>branches[index];

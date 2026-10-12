@@ -29,7 +29,7 @@ test('23:00 keeps day pillar and uses late Zi index 12',()=>{
 test('same-gender pairs supported; payload removes raw identity and places',()=>{
  const a=chart(),b=chart({name:'另外一人',place:'秘密地点',date:'1990-02-13'});const payload=JSON.stringify(apiPayload(a,b));
  for(const str of ['测试','另外一人','秘密地点','1994-02-25','1990-02-13','02:30'])assert.ok(!payload.includes(str));
- assert.equal(buildMatch(a,b).sections.length,6);assert.equal(buildMatch(a,b).questions.length,3);
+ assert.equal(buildMatch(a,b).sections.length,7);assert.equal(buildMatch(a,b).questions.length,3);
 });
 test('changing the other person changes the pair facts and report',()=>{
  const a=chart(),b=chart({date:'1990-02-13'}),c=chart({date:'1988-06-12'});
