@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {interpret,inputSchema,outputSchema} from '../backend/service.mjs';
 import handler from '../api/match.mjs';
 import {apiPayload,chartFor,buildMatch} from '../src/lib/match.ts';
-const a=chartFor({name:'A',date:'1994-02-25',time:'02:30',sex:'female',calendar:'solar',leap:false,place:'北京',timezone:'Asia/Shanghai'});
-const b=chartFor({...a.input,name:'B',date:'1990-02-13',time:'15:37',sex:'male'});
+const a=chartFor({name:'A',date:'1994-02-25',time:'02:30',sex:'female',calendar:'solar',leap:false,place:'北京',timezone:'Asia/Shanghai'},'2026-10-12');
+const b=chartFor({...a.input,name:'B',date:'1990-02-13',time:'15:37',sex:'male'},'2026-10-12');
 const input=apiPayload(a,b),report=buildMatch(a,b);
 test('validates full double-chart protocol and model response',async()=>{
  let request:any;
