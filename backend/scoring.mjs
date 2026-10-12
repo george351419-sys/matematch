@@ -1,6 +1,7 @@
 import {LunarUtil} from 'lunar-javascript';
-export const titles=['缘分与吸引','性格与相处','情绪与沟通','生活与金钱','长期婚姻适配','关系发展节奏','彼此助力'];
-export const weights=[15,15,15,15,15,10,15];
+const sourceTitles=['缘分与吸引','性格与相处','情绪与沟通','生活与金钱','长期婚姻适配','关系发展节奏','彼此助力'];
+export const titles=['缘分与吸引','性格与沟通','生活与金钱','长期婚姻适配','关系发展节奏','彼此助力'];
+export const weights=[15,30,15,15,10,15];
 const elements={甲:'木',乙:'木',丙:'火',丁:'火',戊:'土',己:'土',庚:'金',辛:'金',壬:'水',癸:'水'};
 const generates={木:'火',火:'土',土:'金',金:'水',水:'木'},controls={木:'土',土:'水',水:'火',火:'金',金:'木'};
 const pairs={合:['子丑','寅亥','卯戌','辰酉','巳申','午未'],冲:['子午','丑未','寅申','卯酉','辰戌','巳亥'],害:['子未','丑午','寅巳','卯辰','申亥','酉戌']};
@@ -53,10 +54,13 @@ export function evaluatePair(a,b,asOf){
  scoreValues.push(average(assistance.map(d=>d.bazi)));
  formulas.push('分别核对显干是否生扶对方日主：基准70＋可见生扶6，双向平均；未定喜用神，生扶不等于有益运势');
  verdicts.push('分别核对资源、行动与情绪支持，把助力变成可兑现的分工');
- const dimensions=titles.map((title,i)=>{const z=ziweiDimension(a,b,i),bz=scoreValues[i];const combined=bz===null?z.score:z.score===null?bz:Math.round((bz*0.6+z.score*0.4)*10)/10;return {title,score:combined,bazi:bz,ziwei:z.score,ziweiBasis:z.basis,weight:weights[i],verdict:verdicts[i],formula:`八字：${formulas[i]}。紫微：${z.formula}。两项齐全时八字60%＋紫微40%；仅一项适用时使用该项，不按零分处理。${i===5?'紫微为本命迁移与福德的变化需求比较，不是紫微大运流年预测。':''}`};});
+ const sourceDimensions=sourceTitles.map((title,i)=>{const z=ziweiDimension(a,b,i),bz=scoreValues[i];const combined=bz===null?z.score:z.score===null?bz:Math.round((bz*0.6+z.score*0.4)*10)/10;return {title,score:combined,bazi:bz,ziwei:z.score,ziweiBasis:z.basis,weight:[15,15,15,15,15,10,15][i],verdict:verdicts[i],formula:`八字：${formulas[i]}。紫微：${z.formula}。两项齐全时八字60%＋紫微40%；仅一项适用时使用该项，不按零分处理。${i===5?'紫微为本命迁移与福德的变化需求比较，不是紫微大运流年预测。':''}`};});
+ const left=sourceDimensions[1],right=sourceDimensions[2];
+ const merged={...left,title:titles[1],weight:30,score:average([left.score,right.score]),bazi:average([left.bazi,right.bazi]),ziwei:average([left.ziwei,right.ziwei]),ziweiBasis:left.ziweiBasis+'；'+right.ziweiBasis,verdict:controlled?'关心需要先被理解，做决定时给彼此留出空间':'把相处习惯与情绪需要说清楚，一起商量解决办法',formula:'性格相处与情绪沟通各占本项一半。'+left.formula+'；'+right.formula};
+ const dimensions=[sourceDimensions[0],merged,...sourceDimensions.slice(3)];
  const applicableWeight=dimensions.reduce((s,d)=>s+(d.score===null?0:d.weight),0);
  const raw=dimensions.reduce((s,d)=>s+(d.score??0)*d.weight,0)/applicableWeight;
  const weighted=Math.round(raw*10)/10,total=Math.round(raw);
  const facts={a:pa,b:pb,aSeesB,bSeesA,hetero,roleCount,branch,stem,support,controlled,paths,nativeNotes,timingKnown,upcoming,assistance};
- return {version:'编辑参考标尺 v2',asOf,scope:'八字 × 紫微七维参考评分',dimensions,applicableWeight,weighted,total,facts,disclaimer:'分数是站内传统命理编辑标尺；八字沿用示例规则，紫微采用主星象征类别比较，七维重算后不与旧版分数直接比较，不是通行命理定量公式、婚姻成功率或真实人格测量。沟通、金钱和生活场景是弱取象假设，须用真实经历核对。'};
+ return {version:'编辑参考标尺 v3',asOf,scope:'八字 × 紫微六维参考评分',dimensions,applicableWeight,weighted,total,facts,disclaimer:'分数是站内传统命理编辑标尺；八字沿用示例规则，紫微采用主星象征类别比较，六维重算后不与旧版分数直接比较，不是通行命理定量公式、婚姻成功率或真实人格测量。沟通、金钱和生活场景是弱取象假设，须用真实经历核对。'};
 }

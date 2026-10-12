@@ -4,7 +4,7 @@
 
 - 测试站点：https://george351419-sys.github.io/matematch/
 - 前端：GitHub Pages，从 `gh-pages` 分支发布静态构建；`main` 保存源码。
-- AI 后端：`https://soulmatefor-html-tawny.vercel.app/api/match-v3`，复用 soulmate 已有 Vercel 生产密钥与 `deepseek-flash` 配置。
+- AI 后端：`https://soulmatefor-html-tawny.vercel.app/api/match-v4`，复用 soulmate 已有 Vercel 生产密钥与 `deepseek-flash` 配置。
 
 ## 功能
 
@@ -45,7 +45,7 @@ npm run deploy
 
 GitHub Pages 无法保管 API 密钥。当前生产婚配接口被添加到 soulmate 的原 Vercel 项目，使用原项目不可导出的 `DEEPSEEK_API_KEY`，原 `/api/interpret` 和 `/api/portrait` 保留。
 
-本仓库保存 v3 接口完整源代码：`api/match.mjs`、`backend/service.mjs`、`backend/scoring.mjs`。在 soulmate 后端中分别部署为 `api/match-v3.mjs`、`backend/match-service-v3.mjs`、`backend/match-scoring-v3.mjs`，对应 import 已调整。旧 `/api/match` 保留给缓存中的旧版网页，旧解读与画像接口不变。更新时同步上述三个文件并部署后端。**GitHub Pages 的更新只部署前端，不会自动更新服务端。**
+本仓库保存 v4 接口完整源代码：`api/match.mjs`、`backend/service.mjs`、`backend/scoring.mjs`。在 soulmate 后端中分别部署为 `api/match-v4.mjs`、`backend/match-service-v4.mjs`、`backend/match-scoring-v4.mjs`，对应 import 已调整。旧 `/api/match` 保留给缓存中的旧版网页，旧解读与画像接口不变。更新时同步上述三个文件并部署后端。**GitHub Pages 的更新只部署前端，不会自动更新服务端。**
 
 也可独立部署本仓库至 Vercel，私密设置：
 
@@ -79,3 +79,7 @@ ALLOWED_ORIGINS=https://george351419-sys.github.io
 原样例八字六分为85、73、68、75、80、74，旧版总分75.6取整76。新标尺在2026-10-12参考日的七维合成为79.4、71、69.2、72.2、75.2、72.8、72.8，总分73.3取整73。新旧评分不能直接比较，不固定输出76。
 
 同性组合不套用八字传统异性配偶角色，但紫微部分可用。发展节奏以八字大运作日期背景，紫微本命宫位只讨论变化与安定需求。样例男方约2026-12-13换运，女方约2031-01-14换运，不据此推荐最佳婚年。
+
+## 六维精简报告更新
+
+性格相处与情绪沟通合并为“性格与沟通”，两项等权平均，权重合并为30%。最终六维权重15%、30%、15%、15%、10%、15%。采用编辑标尺v3 / API v4。默认只展示核心结论与行动建议，body、basis和每项评分规则置于关闭的“这段解读依据”；总分计算收进“评分依据”。旧七维接口保留兼容旧页面。
